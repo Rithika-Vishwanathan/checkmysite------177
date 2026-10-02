@@ -32,19 +32,10 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="app-shell justify-center">
-      <div className="main-container flex flex-col justify-end min-h-screen pb-6">
-        {/* Top Status Bar */}
-        <div className="absolute top-3 inset-x-6 flex items-center justify-between text-xs font-semibold text-[#21130D]">
-          <span>9:41</span>
-          <div className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.8A1 1 0 005.76 21.2l2.19-.62A8.93 8.93 0 0012 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4a8 8 0 00-8 8c0 1.9.66 3.65 1.77 5.03l-1.4 1.4a1 1 0 001.42 1.42l1.4-1.4A7.95 7.95 0 0012 20a8 8 0 008-8 8 8 0 00-8-8z"/></svg>
-            <div className="w-5 h-2.5 rounded-sm border border-[#21130D] p-0.5 flex items-center"><div className="w-full h-full bg-[#21130D] rounded-xs"/></div>
-          </div>
-        </div>
+      <div className="main-container flex flex-col justify-end sm:justify-center min-h-screen pb-6 pt-12">
 
         {/* Floating Glass Card */}
-        <div className="glass-panel p-6 sm:p-8 rounded-[36px] shadow-[0_24px_60px_rgba(90,55,40,0.12)]">
+        <div className="glass-panel w-full max-w-md mx-auto p-6 sm:p-8 rounded-[36px] shadow-[0_24px_60px_rgba(90,55,40,0.12)]">
           <Link
             to="/login"
             className="w-10 h-10 rounded-2xl bg-white/60 border border-white/80 shadow-sm flex items-center justify-center text-[#21130D] mb-4 hover:bg-white transition"
@@ -101,7 +92,6 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        <div className="w-32 h-1 bg-[#21130D]/25 rounded-full mx-auto mt-6" />
       </div>
     </div>
   );

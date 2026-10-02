@@ -25,21 +25,12 @@ import EmblemLogo from './components/EmblemLogo';
 function SplashScreen() {
   return (
     <div className="splash-container">
-      {/* 9:41 Status Bar */}
-      <div className="absolute top-3 inset-x-6 flex items-center justify-between text-xs font-semibold text-[#21130D]">
-        <span>9:41</span>
-        <div className="flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.8A1 1 0 005.76 21.2l2.19-.62A8.93 8.93 0 0012 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4a8 8 0 00-8 8c0 1.9.66 3.65 1.77 5.03l-1.4 1.4a1 1 0 001.42 1.42l1.4-1.4A7.95 7.95 0 0012 20a8 8 0 008-8 8 8 0 00-8-8z"/></svg>
-          <div className="w-5 h-2.5 rounded-sm border border-[#21130D] p-0.5 flex items-center"><div className="w-full h-full bg-[#21130D] rounded-xs"/></div>
-        </div>
-      </div>
+
 
       <div className="flex flex-col items-center justify-center gap-6 animate-pulse">
         <EmblemLogo size={180} />
       </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-32 h-1 bg-[#21130D]/30 rounded-full" />
     </div>
   );
 }

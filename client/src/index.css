@@ -131,10 +131,10 @@ body::before {
 
 .main-container {
   flex: 1;
-  max-width: 480px;
+  max-width: 1024px;
   width: 100%;
   margin: 0 auto;
-  padding: 12px 16px 28px;
+  padding: 24px 32px 48px;
   position: relative;
 }
 
