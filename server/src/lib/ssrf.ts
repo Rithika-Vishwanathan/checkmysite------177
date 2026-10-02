@@ -13,7 +13,11 @@ const PRIVATE_IP_RANGES = [
 
 export function isUnsafeUrl(input: string) {
   try {
-    const parsed = new URL(input);
+    let value = input.trim();
+    if (!/^https?:\/\//i.test(value)) {
+      value = 'https://' + value;
+    }
+    const parsed = new URL(value);
     if (!['http:', 'https:'].includes(parsed.protocol)) return true;
     if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '0.0.0.0') return true;
     if (parsed.hostname.includes('localhost')) return true;
@@ -31,16 +35,22 @@ export function isUnsafeUrl(input: string) {
 }
 
 export function validateUserInputUrl(input: string) {
-  const value = input.trim();
+  let value = input.trim();
   if (!value) return 'URL is required.';
-  if (!/^https?:\/\//i.test(value)) return 'Only HTTP and HTTPS URLs are allowed.';
+  if (!/^https?:\/\//i.test(value)) {
+    value = 'https://' + value;
+  }
   if (isUnsafeUrl(value)) return 'This URL is not allowed for security reasons.';
   return null;
 }
 
 export function parseAndValidateUrl(input: string) {
-  const error = validateUserInputUrl(input);
+  let value = input.trim();
+  if (!/^https?:\/\//i.test(value)) {
+    value = 'https://' + value;
+  }
+  const error = validateUserInputUrl(value);
   if (error) throw new Error(error);
-  const url = new URL(input.trim());
+  const url = new URL(value);
   return url;
 }
