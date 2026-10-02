@@ -7,10 +7,10 @@
 :root {
   --bg-champagne: #F4EBE3;
   --bg-gradient: radial-gradient(circle at 50% 0%, #FAF2EB 0%, #F1E4D7 40%, #E8D7C7 75%, #DFCDBC 100%);
-  --card-bg: rgba(255, 255, 255, 0.45);
+  --card-bg: rgba(255, 255, 255, 0.10);
   --card-bg-solid: #FDFBF8;
-  --card-border: rgba(255, 255, 255, 0.5);
-  --card-shadow: 0 8px 32px rgba(110, 75, 60, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  --card-border: rgba(255, 255, 255, 0.4);
+  --card-shadow: 0 8px 32px rgba(110, 75, 60, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
   
   --primary-burgundy: #611722;
   --primary-burgundy-dark: #490F18;
@@ -76,8 +76,8 @@ body::before {
 /* Glassmorphism Panel Utility */
 .glass-panel {
   background: var(--card-bg);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
   border: 1px solid var(--card-border);
   box-shadow: var(--card-shadow);
   border-radius: 28px;
@@ -131,49 +131,23 @@ body::before {
 
 .main-container {
   flex: 1;
-  max-width: 480px;
+  max-width: 1024px;
   width: 100%;
   margin: 0 auto;
-  padding: 12px 16px 28px;
+  padding: 24px 32px 48px;
   position: relative;
 }
 
-/* Desktop Preview Container Centering */
-@media (min-width: 768px) {
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 24px 0;
-  }
-
-  .app-shell {
-    width: 420px;
-    height: 860px;
-    min-height: 860px;
-    max-height: 860px;
-    border-radius: 44px;
-    border: 10px solid #1C120C;
-    box-shadow: 0 30px 90px rgba(50, 30, 20, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-    background: var(--bg-gradient);
-  }
-
-  .main-container {
-    max-width: 100%;
-    padding: 8px 16px 24px;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  .main-container::-webkit-scrollbar {
-    width: 4px;
-  }
-  .main-container::-webkit-scrollbar-thumb {
-    background: rgba(120, 90, 75, 0.2);
-    border-radius: 99px;
-  }
+/* Desktop General Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 90, 75, 0.2);
+  border-radius: 99px;
 }
 
 /* Splash Screen Animation */

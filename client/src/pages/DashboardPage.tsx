@@ -133,8 +133,8 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Quick Action 2x2 Grid */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Quick Action Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {quickActions.map((action) => (
           <button
             type="button"
