@@ -176,16 +176,18 @@ app.get('/api/analysis/progress/:analysisId', (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
 
+  const analysisIdKey = String(req.params.analysisId || '');
+
   const push = (entry?: { stage: string; progress: number; message: string }) => {
     if (!entry) return;
     res.write(`event: progress\ndata: ${JSON.stringify(entry)}\n\n`);
   };
 
-  const current = progressStore.get(req.params.analysisId);
+  const current = progressStore.get(analysisIdKey);
   if (current) push(current);
 
   const timer = setInterval(() => {
-    const latest = progressStore.get(req.params.analysisId);
+    const latest = progressStore.get(analysisIdKey);
     if (!latest) {
       clearInterval(timer);
       res.end();
@@ -332,10 +334,11 @@ app.get('/api/analysis', requireAuth, async (req: Request, res: Response) => {
 
 app.get('/api/analysis/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Analysis not found.');
     }
-    const item = await Analysis.findOne({ _id: req.params.id, userId: req.userId });
+    const item = await Analysis.findOne({ _id: targetId, userId: req.userId });
     if (!item) return sendError(res, 404, 'Analysis not found.');
     return res.json({ success: true, data: item });
   } catch (error) {
@@ -345,10 +348,11 @@ app.get('/api/analysis/:id', requireAuth, async (req: Request, res: Response) =>
 
 app.delete('/api/analysis/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Analysis not found.');
     }
-    const deleted = await Analysis.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    const deleted = await Analysis.findOneAndDelete({ _id: targetId, userId: req.userId });
     if (!deleted) return sendError(res, 404, 'Analysis not found.');
     return res.json({ success: true });
   } catch (error) {
@@ -358,10 +362,11 @@ app.delete('/api/analysis/:id', requireAuth, async (req: Request, res: Response)
 
 app.post('/api/analysis/:id/recheck', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Analysis not found.');
     }
-    const analysis = await Analysis.findOne({ _id: req.params.id, userId: req.userId });
+    const analysis = await Analysis.findOne({ _id: targetId, userId: req.userId });
     if (!analysis) return sendError(res, 404, 'Analysis not found.');
     return app._router.handle({ ...req, body: { url: analysis.url } }, res) as any;
   } catch (error) {
@@ -430,10 +435,11 @@ app.post('/api/websites', requireAuth, async (req: Request, res: Response) => {
 
 app.put('/api/websites/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Website not found.');
     }
-    const website = await Website.findOne({ _id: req.params.id, userId: req.userId });
+    const website = await Website.findOne({ _id: targetId, userId: req.userId });
     if (!website) return sendError(res, 404, 'Website not found.');
 
     let nextUrl = typeof req.body?.url === 'string' ? req.body.url.trim() : website.url;
@@ -486,10 +492,11 @@ app.put('/api/websites/:id', requireAuth, async (req: Request, res: Response) =>
 
 app.get('/api/websites/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Website not found.');
     }
-    const item = await Website.findOne({ _id: req.params.id, userId: req.userId });
+    const item = await Website.findOne({ _id: targetId, userId: req.userId });
     if (!item) return sendError(res, 404, 'Website not found.');
     return res.json({ success: true, data: item });
   } catch (error) {
@@ -499,14 +506,15 @@ app.get('/api/websites/:id', requireAuth, async (req: Request, res: Response) =>
 
 app.delete('/api/websites/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Website not found.');
     }
-    const item = await Website.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    const item = await Website.findOneAndDelete({ _id: targetId, userId: req.userId });
     if (!item) return sendError(res, 404, 'Website not found.');
 
-    await Analysis.deleteMany({ userId: req.userId, websiteId: req.params.id });
-    await Report.deleteMany({ userId: req.userId, websiteId: req.params.id });
+    await Analysis.deleteMany({ userId: req.userId, websiteId: targetId });
+    await Report.deleteMany({ userId: req.userId, websiteId: targetId });
 
     return res.json({ success: true });
   } catch (error) {
@@ -525,10 +533,11 @@ app.get('/api/reports', requireAuth, async (req: Request, res: Response) => {
 
 app.get('/api/reports/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Report not found.');
     }
-    const item = await Report.findOne({ _id: req.params.id, userId: req.userId });
+    const item = await Report.findOne({ _id: targetId, userId: req.userId });
     if (!item) return sendError(res, 404, 'Report not found.');
     return res.json({ success: true, data: item });
   } catch (error) {
@@ -538,10 +547,11 @@ app.get('/api/reports/:id', requireAuth, async (req: Request, res: Response) => 
 
 app.delete('/api/reports/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Report not found.');
     }
-    const item = await Report.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    const item = await Report.findOneAndDelete({ _id: targetId, userId: req.userId });
     if (!item) return sendError(res, 404, 'Report not found.');
     return res.json({ success: true });
   } catch (error) {
@@ -598,10 +608,11 @@ app.get('/api/notifications', requireAuth, async (req: Request, res: Response) =
 
 app.put('/api/notifications/:id/read', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Notification not found.');
     }
-    const item = await Notification.findOneAndUpdate({ _id: req.params.id, userId: req.userId }, { read: true }, { new: true });
+    const item = await Notification.findOneAndUpdate({ _id: targetId, userId: req.userId }, { read: true }, { new: true });
     if (!item) return sendError(res, 404, 'Notification not found.');
     return res.json({ success: true, data: item });
   } catch (error) {
@@ -611,10 +622,11 @@ app.put('/api/notifications/:id/read', requireAuth, async (req: Request, res: Re
 
 app.delete('/api/notifications/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
+    const targetId = String(req.params.id || '');
+    if (!mongoose.isValidObjectId(targetId)) {
       return sendError(res, 404, 'Notification not found.');
     }
-    const item = await Notification.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    const item = await Notification.findOneAndDelete({ _id: targetId, userId: req.userId });
     if (!item) return sendError(res, 404, 'Notification not found.');
     return res.json({ success: true });
   } catch (error) {
@@ -626,7 +638,8 @@ app.post('/api/ai/chat', requireAuth, async (req: Request, res: Response) => {
   try {
     const question = typeof req.body?.question === 'string' ? req.body.question : '';
     const analysisId = req.body?.analysisId;
-    const analysis = mongoose.isValidObjectId(analysisId) ? await Analysis.findOne({ _id: analysisId, userId: req.userId }) : null;
+    const targetId = String(analysisId || '');
+    const analysis = mongoose.isValidObjectId(targetId) ? await Analysis.findOne({ _id: targetId, userId: req.userId }) : null;
     const apiKey = config.geminiApiKey;
 
     if (!question) return sendError(res, 400, 'Question is required.');
