@@ -7,10 +7,10 @@
 :root {
   --bg-champagne: #F4EBE3;
   --bg-gradient: radial-gradient(circle at 50% 0%, #FAF2EB 0%, #F1E4D7 40%, #E8D7C7 75%, #DFCDBC 100%);
-  --card-bg: rgba(255, 255, 255, 0.10);
+  --card-bg: rgba(255, 255, 255, 0.70);
   --card-bg-solid: #FDFBF8;
-  --card-border: rgba(255, 255, 255, 0.4);
-  --card-shadow: 0 8px 32px rgba(110, 75, 60, 0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  --card-border: rgba(255, 255, 255, 0.9);
+  --card-shadow: 0 20px 48px rgba(110, 75, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   
   --primary-burgundy: #611722;
   --primary-burgundy-dark: #490F18;
@@ -76,8 +76,8 @@ body::before {
 /* Glassmorphism Panel Utility */
 .glass-panel {
   background: var(--card-bg);
-  backdrop-filter: blur(48px);
-  -webkit-backdrop-filter: blur(48px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--card-border);
   box-shadow: var(--card-shadow);
   border-radius: 28px;
@@ -131,10 +131,10 @@ body::before {
 
 .main-container {
   flex: 1;
-  max-width: 1024px;
+  max-width: 480px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 32px 48px;
+  padding: 12px 16px 28px;
   position: relative;
 }
 
