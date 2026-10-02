@@ -14,8 +14,8 @@ import { normalizeUrl, getDomainFromUrl, getFaviconUrl } from './lib/helpers.js'
 import { runRealAudit } from './lib/audit.js';
 import axios from 'axios';
 import { config, hasValidGeminiConfig } from './config.js';
-import type { Request, Response } from 'express';
-import { hashPassword, verifyPassword, generateToken, verifyToken } from './lib/auth.js';
+import type { Request, Response, NextFunction } from 'express';
+import { hashPassword, verifyPassword, generateToken } from './lib/auth.js';
 
 const app = express();
 const progressStore = new Map<string, { stage: string; progress: number; message: string }>();
@@ -88,7 +88,6 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
 
     let user = await User.findOne({ email });
     if (!user) {
-      // Create user automatically for seamless local auth onboarding
       const userId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
       const name = email.split('@')[0] || 'User';
       user = await User.create({
@@ -145,7 +144,7 @@ app.post('/api/auth/reset-password', async (req: Request, res: Response) => {
   return res.json({ success: true, message: 'Password reset link sent to your email.' });
 });
 
-app.get('/api/health', async (_req, res) => {
+app.get('/api/health', async (_req: Request, res: Response) => {
   let mongo = false;
   let gemini = false;
 
@@ -172,7 +171,7 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
-app.get('/api/analysis/progress/:analysisId', (req, res) => {
+app.get('/api/analysis/progress/:analysisId', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
@@ -318,32 +317,61 @@ app.post('/api/analysis/start', requireAuth, async (req: Request, res: Response)
   }
 });
 
-app.get('/api/analysis', requireAuth, async (req, res) => {
-  const items = await Analysis.find({ userId: req.userId }).sort({ createdAt: -1 });
-  res.json({ success: true, data: items });
+app.get('/api/analysis', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const items = await Analysis.find({ userId: req.userId }).sort({ createdAt: -1 });
+    return res.json({ success: true, data: items });
+  } catch (error) {
+    return sendError(res, 500, 'Unable to fetch analysis history.');
+  }
 });
 
-app.get('/api/analysis/:id', requireAuth, async (req, res) => {
-  const item = await Analysis.findOne({ _id: req.params.id, userId: req.userId });
-  if (!item) return sendError(res, 404, 'Analysis not found.');
-  res.json({ success: true, data: item });
+app.get('/api/analysis/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Analysis not found.');
+    }
+    const item = await Analysis.findOne({ _id: req.params.id, userId: req.userId });
+    if (!item) return sendError(res, 404, 'Analysis not found.');
+    return res.json({ success: true, data: item });
+  } catch (error) {
+    return sendError(res, 404, 'Analysis not found.');
+  }
 });
 
-app.delete('/api/analysis/:id', requireAuth, async (req, res) => {
-  const deleted = await Analysis.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!deleted) return sendError(res, 404, 'Analysis not found.');
-  res.json({ success: true });
+app.delete('/api/analysis/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Analysis not found.');
+    }
+    const deleted = await Analysis.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    if (!deleted) return sendError(res, 404, 'Analysis not found.');
+    return res.json({ success: true });
+  } catch (error) {
+    return sendError(res, 404, 'Analysis not found.');
+  }
 });
 
-app.post('/api/analysis/:id/recheck', requireAuth, async (req, res) => {
-  const analysis = await Analysis.findOne({ _id: req.params.id, userId: req.userId });
-  if (!analysis) return sendError(res, 404, 'Analysis not found.');
-  return app._router.handle({ ...req, body: { url: analysis.url } }, res) as any;
+app.post('/api/analysis/:id/recheck', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Analysis not found.');
+    }
+    const analysis = await Analysis.findOne({ _id: req.params.id, userId: req.userId });
+    if (!analysis) return sendError(res, 404, 'Analysis not found.');
+    return app._router.handle({ ...req, body: { url: analysis.url } }, res) as any;
+  } catch (error) {
+    return sendError(res, 404, 'Analysis not found.');
+  }
 });
 
-app.get('/api/websites', requireAuth, async (req, res) => {
-  const items = await Website.find({ userId: req.userId }).sort({ lastAnalyzedAt: -1, createdAt: -1 });
-  res.json({ success: true, data: items });
+app.get('/api/websites', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const items = await Website.find({ userId: req.userId }).sort({ lastAnalyzedAt: -1, createdAt: -1 });
+    return res.json({ success: true, data: items });
+  } catch (error) {
+    return sendError(res, 500, 'Unable to fetch websites.');
+  }
 });
 
 app.post('/api/websites', requireAuth, async (req: Request, res: Response) => {
@@ -395,6 +423,9 @@ app.post('/api/websites', requireAuth, async (req: Request, res: Response) => {
 
 app.put('/api/websites/:id', requireAuth, async (req: Request, res: Response) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Website not found.');
+    }
     const website = await Website.findOne({ _id: req.params.id, userId: req.userId });
     if (!website) return sendError(res, 404, 'Website not found.');
 
@@ -443,91 +474,149 @@ app.put('/api/websites/:id', requireAuth, async (req: Request, res: Response) =>
   }
 });
 
-app.get('/api/websites/:id', requireAuth, async (req, res) => {
-  const item = await Website.findOne({ _id: req.params.id, userId: req.userId });
-  if (!item) return sendError(res, 404, 'Website not found.');
-  res.json({ success: true, data: item });
+app.get('/api/websites/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Website not found.');
+    }
+    const item = await Website.findOne({ _id: req.params.id, userId: req.userId });
+    if (!item) return sendError(res, 404, 'Website not found.');
+    return res.json({ success: true, data: item });
+  } catch (error) {
+    return sendError(res, 404, 'Website not found.');
+  }
 });
 
-app.delete('/api/websites/:id', requireAuth, async (req, res) => {
-  const item = await Website.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!item) return sendError(res, 404, 'Website not found.');
+app.delete('/api/websites/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Website not found.');
+    }
+    const item = await Website.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    if (!item) return sendError(res, 404, 'Website not found.');
 
-  await Analysis.deleteMany({ userId: req.userId, websiteId: req.params.id });
-  await Report.deleteMany({ userId: req.userId, websiteId: req.params.id });
+    await Analysis.deleteMany({ userId: req.userId, websiteId: req.params.id });
+    await Report.deleteMany({ userId: req.userId, websiteId: req.params.id });
 
-  res.json({ success: true });
+    return res.json({ success: true });
+  } catch (error) {
+    return sendError(res, 404, 'Website not found.');
+  }
 });
 
-app.get('/api/reports', requireAuth, async (req, res) => {
-  const items = await Report.find({ userId: req.userId }).sort({ createdAt: -1 });
-  res.json({ success: true, data: items });
+app.get('/api/reports', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const items = await Report.find({ userId: req.userId }).sort({ createdAt: -1 });
+    return res.json({ success: true, data: items });
+  } catch (error) {
+    return sendError(res, 500, 'Unable to fetch reports.');
+  }
 });
 
-app.get('/api/reports/:id', requireAuth, async (req, res) => {
-  const item = await Report.findOne({ _id: req.params.id, userId: req.userId });
-  if (!item) return sendError(res, 404, 'Report not found.');
-  res.json({ success: true, data: item });
+app.get('/api/reports/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Report not found.');
+    }
+    const item = await Report.findOne({ _id: req.params.id, userId: req.userId });
+    if (!item) return sendError(res, 404, 'Report not found.');
+    return res.json({ success: true, data: item });
+  } catch (error) {
+    return sendError(res, 404, 'Report not found.');
+  }
 });
 
-app.delete('/api/reports/:id', requireAuth, async (req, res) => {
-  const item = await Report.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!item) return sendError(res, 404, 'Report not found.');
-  res.json({ success: true });
+app.delete('/api/reports/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Report not found.');
+    }
+    const item = await Report.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    if (!item) return sendError(res, 404, 'Report not found.');
+    return res.json({ success: true });
+  } catch (error) {
+    return sendError(res, 404, 'Report not found.');
+  }
 });
 
-app.get('/api/profile', requireAuth, async (req, res) => {
-  const user = await User.findOne({ $or: [{ userId: req.userId }, { firebaseUid: req.userId }] });
-  if (!user) return sendError(res, 404, 'Profile not found.');
+app.get('/api/profile', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = await User.findOne({ $or: [{ userId: req.userId }, { firebaseUid: req.userId }] });
+    if (!user) return sendError(res, 404, 'Profile not found.');
 
-  const stats = {
-    websites: await Website.countDocuments({ userId: req.userId }),
-    analyses: await Analysis.countDocuments({ userId: req.userId }),
-    reports: await Report.countDocuments({ userId: req.userId }),
-  };
+    const stats = {
+      websites: await Website.countDocuments({ userId: req.userId }),
+      analyses: await Analysis.countDocuments({ userId: req.userId }),
+      reports: await Report.countDocuments({ userId: req.userId }),
+    };
 
-  res.json({ success: true, data: { ...user.toObject(), stats } });
+    return res.json({ success: true, data: { ...user.toObject(), stats } });
+  } catch (error) {
+    return sendError(res, 500, 'Unable to fetch profile.');
+  }
 });
 
-app.put('/api/profile', requireAuth, async (req, res) => {
-  const updates = {
-    name: req.body?.name,
-    bio: req.body?.bio,
-    website: req.body?.website,
-    location: req.body?.location,
-    aiPreference: req.body?.aiPreference,
-  };
+app.put('/api/profile', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const updates = {
+      name: req.body?.name,
+      bio: req.body?.bio,
+      website: req.body?.website,
+      location: req.body?.location,
+      aiPreference: req.body?.aiPreference,
+    };
 
-  const user = await User.findOneAndUpdate(
-    { $or: [{ userId: req.userId }, { firebaseUid: req.userId }] },
-    updates,
-    { upsert: true, new: true },
-  );
-  res.json({ success: true, data: user });
+    const user = await User.findOneAndUpdate(
+      { $or: [{ userId: req.userId }, { firebaseUid: req.userId }] },
+      updates,
+      { upsert: true, new: true },
+    );
+    return res.json({ success: true, data: user });
+  } catch (error) {
+    return sendError(res, 500, 'Unable to update profile.');
+  }
 });
 
-app.get('/api/notifications', requireAuth, async (req, res) => {
-  const items = await Notification.find({ userId: req.userId }).sort({ createdAt: -1 });
-  res.json({ success: true, data: items });
+app.get('/api/notifications', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const items = await Notification.find({ userId: req.userId }).sort({ createdAt: -1 });
+    return res.json({ success: true, data: items });
+  } catch (error) {
+    return sendError(res, 500, 'Unable to fetch notifications.');
+  }
 });
 
-app.put('/api/notifications/:id/read', requireAuth, async (req, res) => {
-  const item = await Notification.findOneAndUpdate({ _id: req.params.id, userId: req.userId }, { read: true }, { new: true });
-  if (!item) return sendError(res, 404, 'Notification not found.');
-  res.json({ success: true, data: item });
+app.put('/api/notifications/:id/read', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Notification not found.');
+    }
+    const item = await Notification.findOneAndUpdate({ _id: req.params.id, userId: req.userId }, { read: true }, { new: true });
+    if (!item) return sendError(res, 404, 'Notification not found.');
+    return res.json({ success: true, data: item });
+  } catch (error) {
+    return sendError(res, 404, 'Notification not found.');
+  }
 });
 
-app.delete('/api/notifications/:id', requireAuth, async (req, res) => {
-  const item = await Notification.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  if (!item) return sendError(res, 404, 'Notification not found.');
-  res.json({ success: true });
+app.delete('/api/notifications/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return sendError(res, 404, 'Notification not found.');
+    }
+    const item = await Notification.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    if (!item) return sendError(res, 404, 'Notification not found.');
+    return res.json({ success: true });
+  } catch (error) {
+    return sendError(res, 404, 'Notification not found.');
+  }
 });
 
-app.post('/api/ai/chat', requireAuth, async (req, res) => {
+app.post('/api/ai/chat', requireAuth, async (req: Request, res: Response) => {
   try {
     const question = typeof req.body?.question === 'string' ? req.body.question : '';
     const analysisId = req.body?.analysisId;
-    const analysis = await Analysis.findOne({ _id: analysisId, userId: req.userId });
+    const analysis = mongoose.isValidObjectId(analysisId) ? await Analysis.findOne({ _id: analysisId, userId: req.userId }) : null;
     const apiKey = config.geminiApiKey;
 
     if (!question) return sendError(res, 400, 'Question is required.');
@@ -560,14 +649,20 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
     );
 
     const answer = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'I could not determine an answer from the audit data.';
-    res.json({ success: true, data: { answer } });
+    return res.json({ success: true, data: { answer } });
   } catch (error) {
-    res.json({ success: true, data: { answer: 'Gemini is temporarily unavailable. Please try again later.' } });
+    return res.json({ success: true, data: { answer: 'Gemini is temporarily unavailable. Please try again later.' } });
   }
 });
 
-app.use((req, res) => {
+app.use((_req: Request, res: Response) => {
   sendError(res, 404, 'Route not found.');
+});
+
+// Express Global Error Handler Middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Express Error Handler:', err?.message || err);
+  return sendError(res, err.status || 500, err?.message || 'Internal server error');
 });
 
 async function startServer() {
