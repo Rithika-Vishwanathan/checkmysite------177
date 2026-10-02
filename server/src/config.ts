@@ -12,7 +12,7 @@ export function hasValidGeminiConfig() {
 
 export const config = {
   port: Number(process.env.PORT || 4000),
-  mongoUri: process.env.MONGODB_URI || '',
+  mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/checkmysite',
   mongoDbName: process.env.MONGODB_DB_NAME || 'checkmysite',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   geminiModel: process.env.GEMINI_MODEL || 'gemma-4-26b-a4b-it',

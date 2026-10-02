@@ -36,39 +36,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    api
-      .get('/auth/me')
-      .then((res) => {
-        if (res.data?.success && res.data?.user) {
-          setUser(res.data.user);
-        } else {
-          localStorage.removeItem('token');
-          setUser(null);
-        }
-      })
-      .catch(() => {
-        localStorage.removeItem('token');
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+    try {
+      const decodedUser = JSON.parse(atob(token));
+      setUser(decodedUser);
+    } catch {
+      localStorage.removeItem('token');
+      setUser(null);
+    }
+    setLoading(false);
   }, []);
 
   async function login(email: string, password: string) {
-    const res = await api.post('/auth/login', { email, password });
-    if (res.data?.success && res.data?.token) {
-      localStorage.setItem('token', res.data.token);
-      setUser(res.data.user);
-    }
-    return res.data;
+    // Local dummy login as requested (bypassing backend API)
+    const name = email.split('@')[0] || 'User';
+    const fakeUser = { userId: email, email, name, displayName: name };
+    localStorage.setItem('token', btoa(JSON.stringify(fakeUser)));
+    setUser(fakeUser);
+    return { success: true, user: fakeUser };
   }
 
   async function signup(name: string, email: string, password: string) {
-    const res = await api.post('/auth/register', { name, email, password });
-    if (res.data?.success && res.data?.token) {
-      localStorage.setItem('token', res.data.token);
-      setUser(res.data.user);
-    }
-    return res.data;
+    // Local dummy signup as requested (bypassing backend API)
+    const fakeUser = { userId: email, email, name, displayName: name };
+    localStorage.setItem('token', btoa(JSON.stringify(fakeUser)));
+    setUser(fakeUser);
+    return { success: true, user: fakeUser };
   }
 
   function logout() {
