@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
 import EmblemLogo from '../components/EmblemLogo';
@@ -27,16 +27,34 @@ export default function AnalysisPage() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [progress, setProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [rechecking, setRechecking] = useState(false);
 
   useEffect(() => {
     if (!id) return;
 
     let eventSource: EventSource | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-    api
-      .get(`/analysis/${id}`)
-      .then((res) => setAnalysis(res.data.data))
-      .finally(() => setLoading(false));
+    const fetchAnalysisData = () => {
+      api
+        .get(`/analysis/${id}`)
+        .then((res) => {
+          const data = res.data?.data;
+          setAnalysis(data);
+          if (data && (data.status === 'completed' || data.status === 'failed')) {
+            if (pollTimer) clearInterval(pollTimer);
+          }
+        })
+        .catch(() => setAnalysis(null))
+        .finally(() => setLoading(false));
+    };
+
+    fetchAnalysisData();
+
+    // Poll every 2.5s if not yet completed/failed
+    pollTimer = setInterval(() => {
+      fetchAnalysisData();
+    }, 2500);
 
     try {
       eventSource = new EventSource(`/api/analysis/progress/${id}`);
@@ -44,6 +62,9 @@ export default function AnalysisPage() {
         try {
           const payload = JSON.parse((event as MessageEvent).data);
           setProgress(payload);
+          if (payload.stage === 'completed' || payload.stage === 'failed' || payload.progress >= 100) {
+            fetchAnalysisData();
+          }
         } catch {
           // ignore malformed progress events
         }
@@ -52,15 +73,80 @@ export default function AnalysisPage() {
         eventSource?.close();
       };
     } catch {
-      // EventSource is unavailable in some environments
+      // EventSource unavailable
     }
 
-    return () => eventSource?.close();
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+      eventSource?.close();
+    };
   }, [id]);
 
-  const loadingProgress = progress?.progress ?? 65;
-  const currentMessage = progress?.message || 'Analyzing content structure...';
-  const isRunning = loading || analysis?.status === 'running' || analysis?.status === 'failed' || !analysis?.completedAt;
+  async function handleRetry() {
+    if (!id || rechecking) return;
+    setRechecking(true);
+    try {
+      const res = await api.post(`/analysis/${id}/recheck`);
+      if (res.data?.analysisId) {
+        navigate(`/analysis/${res.data.analysisId}`);
+      } else {
+        navigate('/check');
+      }
+    } catch {
+      navigate('/check');
+    } finally {
+      setRechecking(false);
+    }
+  }
+
+  const isFailed = analysis?.status === 'failed';
+  const isRunning = loading || (analysis?.status === 'running' && !analysis?.completedAt);
+  const loadingProgress = progress?.progress ?? (analysis?.status === 'running' ? 45 : 100);
+  const currentMessage = progress?.message || (analysis?.status === 'running' ? 'Analyzing site structure...' : 'Completed');
+
+  if (isFailed) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-2xl bg-white/60 border border-white/80 shadow-sm flex items-center justify-center text-[#21130D] hover:bg-white transition"
+            aria-label="Back"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+        </div>
+
+        <div className="glass-panel p-8 text-center space-y-4 max-w-lg mx-auto">
+          <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-2xl font-bold">
+            ⚠️
+          </div>
+          <h2 className="text-xl font-bold text-[#21130D]">Audit Could Not Complete</h2>
+          <p className="text-xs text-[#796B64] font-medium leading-relaxed">
+            {analysis?.error || 'The website server refused the connection or took too long to respond.'}
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleRetry}
+              disabled={rechecking}
+              className="btn-burgundy px-5 py-2.5 text-xs font-semibold"
+            >
+              {rechecking ? 'Restarting...' : 'Retry Audit'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/check')}
+              className="px-5 py-2.5 rounded-full border border-white/90 bg-white/70 text-[#21130D] font-semibold text-xs hover:bg-white transition"
+            >
+              New Audit
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isRunning) {
     return (
@@ -78,7 +164,7 @@ export default function AnalysisPage() {
 
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 border border-white/80 text-xs font-semibold text-[#796B64]">
             <svg className="w-4 h-4 text-[#611722]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-            <span>00:24</span>
+            <span>Engine Active</span>
           </div>
         </div>
 
@@ -88,14 +174,13 @@ export default function AnalysisPage() {
             Analyzing Website...
           </h1>
           <p className="text-sm text-[#796B64] mt-0.5 font-medium">
-            Please wait while we analyze the website
+            Please wait while we audit performance, SEO, accessibility & security
           </p>
         </div>
 
-        {/* Central 3D Metallic Emblem & Progress Arc */}
+        {/* Central Emblem & Progress Ring */}
         <div className="flex flex-col items-center justify-center py-4 relative">
           <div className="relative flex items-center justify-center">
-            {/* Outer Progress Ring */}
             <div
               className="w-56 h-56 rounded-full p-2.5 flex items-center justify-center shadow-lg"
               style={{
@@ -117,11 +202,11 @@ export default function AnalysisPage() {
         {/* Progress Checklist */}
         <div className="glass-panel p-5 space-y-3.5">
           {[
-            { label: 'Fetching website data', done: true },
-            { label: 'Analyzing design & UX', done: true },
-            { label: 'Checking SEO elements...', active: true },
-            { label: 'Evaluating performance', pending: true },
-            { label: 'Generating insights', pending: true },
+            { label: 'Fetching website data & headers', done: loadingProgress > 15, active: loadingProgress <= 15 },
+            { label: 'Inspecting HTML & metadata structure', done: loadingProgress > 45, active: loadingProgress > 15 && loadingProgress <= 45 },
+            { label: 'Evaluating SEO & performance metrics', done: loadingProgress > 70, active: loadingProgress > 45 && loadingProgress <= 70 },
+            { label: 'Checking security & mobile readiness', done: loadingProgress > 90, active: loadingProgress > 70 && loadingProgress <= 90 },
+            { label: 'Generating report recommendations', done: loadingProgress >= 100, active: loadingProgress > 90 && loadingProgress < 100 },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3">
               {item.done && (
@@ -134,7 +219,7 @@ export default function AnalysisPage() {
                   <div className="w-2.5 h-2.5 rounded-full bg-[#611722] animate-pulse-dot" />
                 </div>
               )}
-              {item.pending && (
+              {!item.done && !item.active && (
                 <div className="w-5 h-5 rounded-full border-2 border-[#A3948C]/40 flex-shrink-0" />
               )}
               <span

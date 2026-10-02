@@ -199,125 +199,129 @@ app.get('/api/analysis/progress/:analysisId', (req: Request, res: Response) => {
   req.on('close', () => clearInterval(timer));
 });
 
-app.post('/api/analysis/start', requireAuth, async (req: Request, res: Response) => {
-  try {
-    let url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
-    if (url && !/^https?:\/\//i.test(url)) {
-      url = 'https://' + url;
+async function startAnalysisForUrl(userId: string, targetUrl: string, res: Response) {
+  let url = typeof targetUrl === 'string' ? targetUrl.trim() : '';
+  if (url && !/^https?:\/\//i.test(url)) {
+    url = 'https://' + url;
+  }
+
+  const validationError = parseAndValidateUrl(url)?.href ? null : (() => {
+    try {
+      parseAndValidateUrl(url);
+      return null;
+    } catch (error) {
+      return (error as Error).message;
     }
+  })();
 
-    const validationError = parseAndValidateUrl(url)?.href ? null : (() => {
-      try {
-        parseAndValidateUrl(url);
-        return null;
-      } catch (error) {
-        return (error as Error).message;
-      }
-    })();
+  if (validationError) {
+    return sendError(res, 400, validationError);
+  }
 
-    if (validationError) {
-      return sendError(res, 400, validationError);
-    }
+  const normalized = normalizeUrl(url);
+  const domain = getDomainFromUrl(normalized);
+  const favicon = getFaviconUrl(normalized);
 
-    const normalized = normalizeUrl(url);
-    const domain = getDomainFromUrl(normalized);
-    const favicon = getFaviconUrl(normalized);
+  const analysis = await Analysis.create({
+    userId,
+    url: normalized,
+    status: 'running',
+    overallScore: 0,
+    startedAt: new Date(),
+  });
 
-    const analysis = await Analysis.create({
-      userId: req.userId,
+  const website = await Website.findOneAndUpdate(
+    { userId, normalizedUrl: normalized },
+    {
+      userId,
       url: normalized,
-      status: 'running',
-      overallScore: 0,
-      startedAt: new Date(),
+      normalizedUrl: normalized,
+      domain,
+      favicon,
+      latestStatus: 'running',
+      lastAnalyzedAt: new Date(),
+    },
+    { upsert: true, new: true },
+  );
+
+  progressStore.set(String(analysis._id), { stage: 'validation', progress: 10, message: 'Validating URL' });
+
+  try {
+    const audit = await runRealAudit(normalized, (stage, progress, message) => {
+      progressStore.set(String(analysis._id), { stage, progress, message });
     });
 
-    const website = await Website.findOneAndUpdate(
-      { userId: req.userId, normalizedUrl: normalized },
+    const completedAnalysis = await Analysis.findByIdAndUpdate(
+      analysis._id,
       {
-        userId: req.userId,
-        url: normalized,
-        normalizedUrl: normalized,
-        domain,
-        favicon,
-        latestStatus: 'running',
-        lastAnalyzedAt: new Date(),
+        websiteId: website._id,
+        status: 'completed',
+        overallScore: audit.analysis.overallScore,
+        performance: audit.analysis.performance,
+        seo: audit.analysis.seo,
+        accessibility: audit.analysis.accessibility,
+        security: audit.analysis.security,
+        mobile: audit.analysis.mobile,
+        technical: audit.analysis.technical,
+        aiSummary: audit.analysis.aiSummary || 'Audit completed successfully.',
+        aiRecommendations: audit.analysis.aiRecommendations || [],
+        completedAt: new Date(),
+        duration: Date.now() - new Date(analysis.startedAt as Date).getTime(),
+        findings: audit.analysis.findings || [],
+        reportData: audit.analysis.reportData || {},
+      },
+      { new: true },
+    );
+
+    await Website.findByIdAndUpdate(website._id, {
+      latestScore: completedAnalysis?.overallScore ?? 0,
+      latestStatus: completedAnalysis?.status ?? 'completed',
+      lastAnalyzedAt: new Date(),
+    });
+
+    await Report.findOneAndUpdate(
+      { userId, analysisId: String(completedAnalysis?._id) },
+      {
+        userId,
+        analysisId: String(completedAnalysis?._id),
+        websiteId: website._id,
+        reportData: completedAnalysis?.reportData || {},
       },
       { upsert: true, new: true },
     );
 
-    progressStore.set(String(analysis._id), { stage: 'validation', progress: 10, message: 'Validating URL' });
+    await Notification.create({
+      userId,
+      type: 'analysis_completed',
+      title: 'Audit complete',
+      message: `Your website audit for ${domain} is complete.`,
+      read: false,
+    });
 
-    try {
-      const audit = await runRealAudit(normalized, (stage, progress, message) => {
-        progressStore.set(String(analysis._id), { stage, progress, message });
-      });
+    progressStore.set(String(analysis._id), { stage: 'completed', progress: 100, message: 'Completed' });
+    return res.json({ success: true, analysisId: completedAnalysis?._id });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Website could not be analyzed';
+    await Analysis.findByIdAndUpdate(analysis._id, {
+      status: 'failed',
+      error: message,
+      completedAt: new Date(),
+    });
+    await Notification.create({
+      userId,
+      type: 'analysis_failed',
+      title: 'Audit failed',
+      message: message,
+      read: false,
+    });
+    progressStore.set(String(analysis._id), { stage: 'failed', progress: 100, message: message });
+    return sendError(res, 400, `Website could not be fully analyzed. ${message}`);
+  }
+}
 
-      const completedAnalysis = await Analysis.findByIdAndUpdate(
-        analysis._id,
-        {
-          websiteId: website._id,
-          status: 'completed',
-          overallScore: audit.analysis.overallScore,
-          performance: audit.analysis.performance,
-          seo: audit.analysis.seo,
-          accessibility: audit.analysis.accessibility,
-          security: audit.analysis.security,
-          mobile: audit.analysis.mobile,
-          technical: audit.analysis.technical,
-          aiSummary: audit.analysis.aiSummary || 'Audit completed successfully.',
-          aiRecommendations: audit.analysis.aiRecommendations || [],
-          completedAt: new Date(),
-          duration: Date.now() - new Date(analysis.startedAt as Date).getTime(),
-          findings: audit.analysis.findings || [],
-          reportData: audit.analysis.reportData || {},
-        },
-        { new: true },
-      );
-
-      await Website.findByIdAndUpdate(website._id, {
-        latestScore: completedAnalysis?.overallScore ?? 0,
-        latestStatus: completedAnalysis?.status ?? 'completed',
-        lastAnalyzedAt: new Date(),
-      });
-
-      await Report.findOneAndUpdate(
-        { userId: req.userId, analysisId: String(completedAnalysis?._id) },
-        {
-          userId: req.userId,
-          analysisId: String(completedAnalysis?._id),
-          websiteId: website._id,
-          reportData: completedAnalysis?.reportData || {},
-        },
-        { upsert: true, new: true },
-      );
-
-      await Notification.create({
-        userId: req.userId,
-        type: 'analysis_completed',
-        title: 'Audit complete',
-        message: `Your website audit for ${domain} is complete.`,
-        read: false,
-      });
-
-      progressStore.set(String(analysis._id), { stage: 'completed', progress: 100, message: 'Completed' });
-      return res.json({ success: true, analysisId: completedAnalysis?._id });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Website could not be analyzed';
-      await Analysis.findByIdAndUpdate(analysis._id, {
-        status: 'failed',
-        error: message,
-        completedAt: new Date(),
-      });
-      await Notification.create({
-        userId: req.userId,
-        type: 'analysis_failed',
-        title: 'Audit failed',
-        message: message,
-        read: false,
-      });
-      progressStore.set(String(analysis._id), { stage: 'failed', progress: 100, message: message });
-      return sendError(res, 400, `Website could not be fully analyzed. ${message}`);
-    }
+app.post('/api/analysis/start', requireAuth, async (req: Request, res: Response) => {
+  try {
+    return await startAnalysisForUrl(req.userId!, req.body?.url, res);
   } catch (error) {
     return sendError(res, 400, error instanceof Error ? error.message : 'Unable to start analysis.');
   }
@@ -368,7 +372,7 @@ app.post('/api/analysis/:id/recheck', requireAuth, async (req: Request, res: Res
     }
     const analysis = await Analysis.findOne({ _id: targetId, userId: req.userId });
     if (!analysis) return sendError(res, 404, 'Analysis not found.');
-    return app._router.handle({ ...req, body: { url: analysis.url } }, res) as any;
+    return await startAnalysisForUrl(req.userId!, analysis.url, res);
   } catch (error) {
     return sendError(res, 404, 'Analysis not found.');
   }
