@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { logout } from '../firebase';
+import EmblemLogo from './EmblemLogo';
+import { useAuth } from '../context/AuthContext';
 
 const sidebarItems = [
   { label: 'Home', path: '/dashboard', icon: 'home' },
@@ -11,16 +12,16 @@ const sidebarItems = [
   { label: 'AI Consultant', path: '/ai', icon: 'ai' },
   { label: 'Settings', path: '/settings', icon: 'settings' },
   { label: 'Help & Support', path: '/help', icon: 'help' },
-  { label: 'Logout', path: '/login', icon: 'logout', action: 'logout' },
+  { label: 'Logout', path: '/login', icon: 'logout' },
 ];
 
 function SideIcon({ type }: { type: string }) {
-  const common = 'h-4 w-4 stroke-[1.7]';
+  const common = 'w-5 h-5 stroke-[1.8]';
   switch (type) {
     case 'home':
       return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={common}><path d="M3 10.5L12 3l9 7.5" /><path d="M5 9.5V20h14V9.5" /><path d="M9 20v-6h6v6" /></svg>;
     case 'search':
-      return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={common}><circle cx="11" cy="11" r="5.5" /><path d="M16 16l5 5" /></svg>;
+      return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={common}><circle cx="11" cy="11" r="6" /><path d="M16 16l5 5" /></svg>;
     case 'report':
       return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={common}><path d="M7 4.5h7l5 5V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" /><path d="M14 4.5v5h5" /><path d="M8 12h8M8 15h8" /></svg>;
     case 'saved':
@@ -41,62 +42,114 @@ function SideIcon({ type }: { type: string }) {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
+  const avatarLetter = (user?.displayName || user?.name || user?.email || 'R').charAt(0).toUpperCase();
 
   return (
     <div className="app-shell">
-      <div className="mobile-backdrop" onClick={() => setMobileOpen(false)} data-open={mobileOpen ? 'true' : 'false'} />
-      <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
-        <div className="drawer-header">
-          <div className="drawer-brand">
-            <div className="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 80 80">
-                <path d="M18 56c-6-18 11-36 30-35 15 1 25 11 20 23-5 14-24 11-29 23-4 10 9 16 22 12" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="40" cy="40" r="17" fill="none" stroke="currentColor" strokeWidth="6" />
-                <circle cx="40" cy="40" r="8" fill="currentColor" />
-              </svg>
+      {/* Mobile Backdrop & Drawer */}
+      {mobileOpen && (
+        <div className="drawer-backdrop" onClick={() => setMobileOpen(false)} />
+      )}
+
+      {mobileOpen && (
+        <aside className="drawer-content">
+          <div className="flex items-center justify-between pb-6 mb-4 border-b border-[#21130D]/10">
+            <div className="flex items-center gap-3">
+              <EmblemLogo size={42} />
+              <span className="font-bold text-lg tracking-tight text-[#21130D]">CheckMySite</span>
             </div>
-            <span>CheckMySite</span>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="w-9 h-9 rounded-2xl bg-white/60 border border-white/80 text-[#21130D] flex items-center justify-center text-xl font-medium shadow-sm hover:bg-white"
+              aria-label="Close drawer"
+            >
+              ✕
+            </button>
           </div>
-          <button type="button" className="close-drawer" onClick={() => setMobileOpen(false)} aria-label="Close menu">
-            ×
-          </button>
+
+          <nav className="flex-1 flex flex-col gap-1.5 overflow-y-auto">
+            {sidebarItems.map((item) => (
+              <NavLink
+                key={item.label}
+                to={item.path}
+                onClick={() => {
+                  setMobileOpen(false);
+                  if (item.label === 'Logout') {
+                    logout();
+                  }
+                }}
+                className={({ isActive }) =>
+                  `flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#611722]/15 to-[#611722]/5 text-[#611722] font-semibold border border-[#611722]/20 shadow-sm'
+                      : 'text-[#4A3B34] hover:bg-white/60 hover:text-[#21130D]'
+                  }`
+                }
+              >
+                <SideIcon type={item.icon} />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="pt-4 border-t border-[#21130D]/10 text-xs text-[#796B64] text-center">
+            CheckMySite v2.0 • Luxury Edition
+          </div>
+        </aside>
+      )}
+
+      {/* Main Panel Content */}
+      <div className="main-container">
+        {/* iOS 9:41 Status Bar */}
+        <div className="flex items-center justify-between pt-1 pb-3 text-xs font-semibold text-[#21130D]">
+          <span>9:41</span>
+          <div className="flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.8A1 1 0 005.76 21.2l2.19-.62A8.93 8.93 0 0012 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4a8 8 0 00-8 8c0 1.9.66 3.65 1.77 5.03l-1.4 1.4a1 1 0 001.42 1.42l1.4-1.4A7.95 7.95 0 0012 20a8 8 0 008-8 8 8 0 00-8-8z"/></svg>
+            <div className="w-5 h-2.5 rounded-sm border border-[#21130D] p-0.5 flex items-center"><div className="w-full h-full bg-[#21130D] rounded-xs"/></div>
+          </div>
         </div>
 
-        <nav className="nav-list">
-          {sidebarItems.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.path}
-              onClick={async () => {
-                setMobileOpen(false);
-                if (item.label === 'Logout') {
-                  await logout();
-                }
-              }}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-            >
-              <span className="nav-icon"><SideIcon type={item.icon} /></span>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-
-      <div className="main-panel">
-        <header className="topbar">
-          <button type="button" className="menu-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        {/* Top Header Bar */}
+        <header className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            className="w-10 h-10 rounded-2xl bg-white/60 border border-white/80 shadow-sm backdrop-blur-md flex items-center justify-center text-[#21130D] hover:bg-white transition"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
           </button>
-          <div className="topbar-actions">
-            <button type="button" className="icon-pill" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" /><path d="M10 20a2 2 0 0 0 4 0" /></svg>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              className="w-10 h-10 rounded-2xl bg-white/60 border border-white/80 shadow-sm backdrop-blur-md flex items-center justify-center text-[#21130D] relative hover:bg-white transition"
+              aria-label="Notifications"
+              onClick={() => navigate('/notifications')}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" /><path d="M10 20a2 2 0 0 0 4 0" /></svg>
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#611722]" />
             </button>
-            <button type="button" className="profile-avatar" aria-label="Profile" onClick={() => navigate('/profile')}>R</button>
+
+            <button
+              type="button"
+              className="w-10 h-10 rounded-full bg-[#611722] text-white font-bold text-sm flex items-center justify-center shadow-md shadow-[#611722]/20 hover:opacity-95 transition"
+              aria-label="Profile"
+              onClick={() => navigate('/profile')}
+            >
+              {avatarLetter}
+            </button>
           </div>
         </header>
 
-        <main className="content-shell">{children}</main>
-        <div className="home-indicator" aria-hidden="true" />
+        {/* Dynamic Page Content */}
+        <main>{children}</main>
+
+        {/* Bottom Home Indicator */}
+        <div className="w-32 h-1 bg-[#21130D]/25 rounded-full mx-auto mt-6" />
       </div>
     </div>
   );

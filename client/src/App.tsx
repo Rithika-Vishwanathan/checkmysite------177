@@ -20,59 +20,26 @@ import SavedPage from './pages/SavedPage';
 import ComparePage from './pages/ComparePage';
 import HelpPage from './pages/HelpPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import EmblemLogo from './components/EmblemLogo';
 
 function SplashScreen() {
   return (
-    <div className="splash-screen">
-      <div className="splash-glow splash-glow-1" />
-      <div className="splash-glow splash-glow-2" />
-      <div className="splash-logo-wrap">
-        <svg viewBox="0 0 420 420" className="splash-logo" aria-label="CheckMySite logo" role="img">
-          <defs>
-            <linearGradient id="splashStroke" x1="0%" x2="100%" y1="0%" y2="100%">
-              <stop offset="0%" stopColor="#f8e8d9" />
-              <stop offset="35%" stopColor="#edd4b6" />
-              <stop offset="75%" stopColor="#c9997a" />
-              <stop offset="100%" stopColor="#7f4d3d" />
-            </linearGradient>
-            <radialGradient id="lensGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#fff9f3" />
-              <stop offset="40%" stopColor="#e7d2bb" />
-              <stop offset="100%" stopColor="#8b5847" />
-            </radialGradient>
-          </defs>
-
-          <path
-            d="M103 303 C102 219, 169 116, 237 111 C 288 108, 323 136, 337 174 C 352 216, 322 254, 292 271 C 266 286, 215 289, 190 301 C 163 315, 159 338, 187 349 C 221 363, 271 349, 307 319"
-            fill="none"
-            stroke="url(#splashStroke)"
-            strokeWidth="12"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="splash-s-shape"
-          />
-          <path
-            d="M112 298 C88 231, 108 155, 165 124 C 227 90, 309 94, 338 150 C 365 203, 336 266, 293 294"
-            fill="none"
-            stroke="url(#splashStroke)"
-            strokeWidth="10"
-            strokeLinecap="round"
-            className="splash-trail splash-trail-1"
-          />
-          <path
-            d="M148 300 C132 268, 130 236, 150 205 C 178 162, 232 140, 280 156 C 327 171, 351 218, 334 260 C 317 300, 284 321, 244 323"
-            fill="none"
-            stroke="url(#splashStroke)"
-            strokeWidth="9"
-            strokeLinecap="round"
-            className="splash-trail splash-trail-2"
-          />
-          <circle cx="212" cy="214" r="92" fill="none" stroke="url(#splashStroke)" strokeWidth="14" className="splash-eye-ring" />
-          <circle cx="212" cy="214" r="52" fill="rgba(24,18,17,0.18)" stroke="rgba(32,24,22,0.32)" strokeWidth="12" className="splash-eye-core" />
-          <circle cx="212" cy="214" r="19" fill="#1e1715" className="splash-eye-pupil" />
-          <circle cx="212" cy="214" r="35" fill="url(#lensGlow)" opacity="0.55" className="splash-lens-halo" />
-        </svg>
+    <div className="splash-container">
+      {/* 9:41 Status Bar */}
+      <div className="absolute top-3 inset-x-6 flex items-center justify-between text-xs font-semibold text-[#21130D]">
+        <span>9:41</span>
+        <div className="flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.8A1 1 0 005.76 21.2l2.19-.62A8.93 8.93 0 0012 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4a8 8 0 00-8 8c0 1.9.66 3.65 1.77 5.03l-1.4 1.4a1 1 0 001.42 1.42l1.4-1.4A7.95 7.95 0 0012 20a8 8 0 008-8 8 8 0 00-8-8z"/></svg>
+          <div className="w-5 h-2.5 rounded-sm border border-[#21130D] p-0.5 flex items-center"><div className="w-full h-full bg-[#21130D] rounded-xs"/></div>
+        </div>
       </div>
+
+      <div className="flex flex-col items-center justify-center gap-6 animate-pulse">
+        <EmblemLogo size={180} />
+      </div>
+
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-32 h-1 bg-[#21130D]/30 rounded-full" />
     </div>
   );
 }
@@ -91,7 +58,7 @@ function AppRoutes() {
 
   useEffect(() => {
     if (!loading) {
-      const timeout = window.setTimeout(() => setShowSplash(false), 1800);
+      const timeout = window.setTimeout(() => setShowSplash(false), 1600);
       return () => window.clearTimeout(timeout);
     }
   }, [loading]);

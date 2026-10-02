@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 
 export default function AiPage() {
-  const [question, setQuestion] = useState('Why is my website score low?');
+  const [question, setQuestion] = useState('Why is my website score low and how can I fix it?');
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [analyses, setAnalyses] = useState<any[]>([]);
@@ -28,52 +28,71 @@ export default function AiPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="panel p-5 sm:p-6">
-        <div className="kicker">AI expert</div>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[#171717]">AI Assistant</h1>
-        <p className="mt-2 text-sm text-[#737373]">
-          Ask about performance, SEO, accessibility, security, or mobile issues using the latest real audit context when available.
-        </p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-[#21130D]">AI Consultant</h1>
+        <p className="text-sm text-[#796B64] font-medium mt-0.5">Instant AI audit recommendations & optimization insights</p>
       </div>
 
-      <div className="panel p-5 sm:p-6">
+      <div className="glass-panel p-5 space-y-4">
         <form onSubmit={onSubmit} className="space-y-4">
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-[#171717]">Audit context</span>
-            <select
-              value={selectedAnalysisId}
-              onChange={(e) => setSelectedAnalysisId(e.target.value)}
-              className="w-full rounded-xl border border-[#E7E5E4] bg-white px-3 py-2.5 text-[#171717] outline-none transition focus:border-[#5A0714] focus:ring-2 focus:ring-[#F8E9EC]"
-            >
-              <option value="">No audit context</option>
-              {analyses.map((analysis) => (
-                <option key={analysis._id} value={analysis._id}>{analysis.url}</option>
-              ))}
-            </select>
-          </label>
+          <div>
+            <label className="block text-xs font-bold text-[#796B64] uppercase tracking-wider mb-2">
+              Select Audit Context
+            </label>
+            <div className="input-pill px-3 py-2.5 bg-white/80">
+              <select
+                value={selectedAnalysisId}
+                onChange={(e) => setSelectedAnalysisId(e.target.value)}
+                className="w-full bg-transparent text-sm font-semibold text-[#21130D] outline-none"
+              >
+                <option value="">No audit context</option>
+                {analyses.map((analysis) => (
+                  <option key={analysis._id} value={analysis._id}>
+                    {analysis.url}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-[#171717]">Question</span>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              className="min-h-[120px] w-full rounded-2xl border border-[#E7E5E4] bg-white px-4 py-3 text-[#171717] outline-none transition focus:border-[#5A0714] focus:ring-2 focus:ring-[#F8E9EC]"
-            />
-          </label>
+          <div>
+            <label className="block text-xs font-bold text-[#796B64] uppercase tracking-wider mb-2">
+              Ask AI Expert
+            </label>
+            <div className="input-pill p-3.5 bg-white/80">
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className="w-full h-24 bg-transparent text-sm font-medium text-[#21130D] placeholder-[#A3948C] outline-none resize-none"
+                placeholder="Ask anything about performance, SEO, security, or UX..."
+              />
+            </div>
+          </div>
 
-          <button type="submit" disabled={loading} className="inline-flex items-center justify-center rounded-xl bg-[#5A0714] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#43050E] disabled:cursor-not-allowed disabled:opacity-70">
-            {loading ? 'Thinking...' : 'Ask AI'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-burgundy w-full py-3.5 text-sm font-bold"
+          >
+            {loading ? 'Thinking...' : 'Ask AI Consultant →'}
           </button>
         </form>
       </div>
 
-      <div className="panel p-5 sm:p-6">
-        <div className="text-xs uppercase tracking-[0.12em] text-[#737373]">Response</div>
-        <div className="mt-4 rounded-2xl bg-[#F9F9F8] p-4 text-sm leading-7 text-[#171717]">
-          {answer || 'Ask about performance, SEO, accessibility, security, or mobile issues.'}
+      {answer && (
+        <div className="glass-panel p-5 space-y-3 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-[#611722] text-white flex items-center justify-center font-bold text-xs">
+              AI
+            </div>
+            <h3 className="font-bold text-sm text-[#21130D]">Recommendation</h3>
+          </div>
+          <p className="text-xs text-[#21130D] font-medium leading-relaxed whitespace-pre-line bg-white/60 p-4 rounded-2xl border border-white/80">
+            {answer}
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

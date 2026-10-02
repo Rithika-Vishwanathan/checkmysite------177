@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
+import EmblemLogo from '../components/EmblemLogo';
 
 const categories = [
   { key: 'performance', label: 'Performance', icon: '⚡', path: 'performance' },
@@ -9,18 +10,6 @@ const categories = [
   { key: 'security', label: 'Security', icon: '🔐', path: 'security' },
   { key: 'mobile', label: 'Mobile', icon: '📱', path: 'mobile' },
   { key: 'technical', label: 'Technical', icon: '🌐', path: 'technical' },
-];
-
-const stageOrder = [
-  { key: 'validation', label: 'Website access' },
-  { key: 'loading', label: 'Website access' },
-  { key: 'performance', label: 'Performance' },
-  { key: 'accessibility', label: 'Accessibility' },
-  { key: 'seo', label: 'SEO' },
-  { key: 'security', label: 'Security' },
-  { key: 'mobile', label: 'Mobile' },
-  { key: 'technical', label: 'Technical' },
-  { key: 'completed', label: 'AI analysis' },
 ];
 
 function formatDate(value?: string) {
@@ -34,6 +23,7 @@ function formatDate(value?: string) {
 
 export default function AnalysisPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [analysis, setAnalysis] = useState<any>(null);
   const [progress, setProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -62,174 +52,143 @@ export default function AnalysisPage() {
         eventSource?.close();
       };
     } catch {
-      // EventSource is unavailable in some environments; fall back to static state
+      // EventSource is unavailable in some environments
     }
 
     return () => eventSource?.close();
   }, [id]);
 
-  const bannerScore = analysis?.overallScore ?? progress?.progress ?? 0;
-  const activeStage = progress?.stage || (analysis?.status === 'completed' ? 'completed' : 'validation');
+  const loadingProgress = progress?.progress ?? 65;
+  const currentMessage = progress?.message || 'Analyzing content structure...';
+  const isRunning = loading || analysis?.status === 'running' || analysis?.status === 'failed' || !analysis?.completedAt;
 
-  const stageProgress = useMemo(() => {
-    const currentIndex = stageOrder.findIndex((stage) => stage.key === activeStage);
-    const displayValue = analysis?.status === 'completed' ? 100 : Math.max(10, Math.min(95, (progress?.progress ?? 20) || 20));
-    return { currentIndex, displayValue };
-  }, [activeStage, analysis?.status, progress?.progress]);
-
-  if (loading) {
-    const loadingProgress = progress?.progress ?? 65;
-    const currentMessage = progress?.message || 'Analyzing content structure...';
-
+  if (isRunning) {
     return (
-      <div className="analysis-loading-shell">
-        <div className="analysis-loading-card">
-          <div className="analysis-loading-head">
-            <div>
-              <div className="eyebrow">Analyzing</div>
-              <h2>Analyzing Website...</h2>
-              <p>Please wait while we analyze the website</p>
-            </div>
-            <div className="analysis-timer">{Math.min(99, Math.max(10, loadingProgress))}%</div>
+      <div className="space-y-6">
+        {/* Top Header Bar */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-2xl bg-white/60 border border-white/80 shadow-sm flex items-center justify-center text-[#21130D] hover:bg-white transition"
+            aria-label="Back"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 border border-white/80 text-xs font-semibold text-[#796B64]">
+            <svg className="w-4 h-4 text-[#611722]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+            <span>00:24</span>
           </div>
+        </div>
 
-          <div className="analysis-eye-stage">
-            <div className="analysis-eye-frame">
-              <svg viewBox="0 0 420 420" className="splash-logo" aria-label="Loading logo" role="img">
-                <defs>
-                  <linearGradient id="splashStroke2" x1="0%" x2="100%" y1="0%" y2="100%">
-                    <stop offset="0%" stopColor="#f8e8d9" />
-                    <stop offset="35%" stopColor="#edd4b6" />
-                    <stop offset="75%" stopColor="#c9997a" />
-                    <stop offset="100%" stopColor="#7f4d3d" />
-                  </linearGradient>
-                </defs>
-                <path d="M103 303 C102 219, 169 116, 237 111 C 288 108, 323 136, 337 174 C 352 216, 322 254, 292 271 C 266 286, 215 289, 190 301 C 163 315, 159 338, 187 349 C 221 363, 271 349, 307 319" fill="none" stroke="url(#splashStroke2)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" className="splash-s-shape" />
-                <circle cx="212" cy="214" r="92" fill="none" stroke="url(#splashStroke2)" strokeWidth="14" className="splash-eye-ring" />
-                <circle cx="212" cy="214" r="52" fill="rgba(24,18,17,0.18)" stroke="rgba(32,24,22,0.32)" strokeWidth="12" className="splash-eye-core" />
-                <circle cx="212" cy="214" r="19" fill="#1e1715" className="splash-eye-pupil" />
-              </svg>
-            </div>
-          </div>
+        {/* Title */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-[#21130D]">
+            Analyzing Website...
+          </h1>
+          <p className="text-sm text-[#796B64] mt-0.5 font-medium">
+            Please wait while we analyze the website
+          </p>
+        </div>
 
-          <div className="analysis-progress-wrap">
-            <div className="analysis-progress-ring" style={{ background: `conic-gradient(#7a1027 ${loadingProgress * 3.6}deg, rgba(122,16,39,0.12) 0deg)` }}>
-              <span className="analysis-progress-value">{loadingProgress}%</span>
-            </div>
-          </div>
-
-          <div className="analysis-status-label">{currentMessage}</div>
-
-          <div className="analysis-checklist">
-            {['Fetching website data', 'Analyzing design & UX', 'Checking SEO elements...', 'Evaluating performance', 'Generating insights'].map((item) => (
-              <div key={item} className="analysis-checklist-item">
-                <span className="bullet" />
-                <span>{item}</span>
+        {/* Central 3D Metallic Emblem & Progress Arc */}
+        <div className="flex flex-col items-center justify-center py-4 relative">
+          <div className="relative flex items-center justify-center">
+            {/* Outer Progress Ring */}
+            <div
+              className="w-56 h-56 rounded-full p-2.5 flex items-center justify-center shadow-lg"
+              style={{
+                background: `conic-gradient(#611722 ${loadingProgress * 3.6}deg, rgba(97, 23, 34, 0.1) 0deg)`,
+              }}
+            >
+              <div className="w-full h-full rounded-full bg-[#FAF2EB] backdrop-blur-xl border border-white/80 flex flex-col items-center justify-center p-4">
+                <EmblemLogo size={100} />
               </div>
-            ))}
+            </div>
           </div>
+
+          <div className="mt-4 text-center">
+            <span className="text-3xl font-extrabold text-[#21130D] block">{loadingProgress}%</span>
+            <span className="text-xs text-[#796B64] font-semibold">{currentMessage}</span>
+          </div>
+        </div>
+
+        {/* Progress Checklist */}
+        <div className="glass-panel p-5 space-y-3.5">
+          {[
+            { label: 'Fetching website data', done: true },
+            { label: 'Analyzing design & UX', done: true },
+            { label: 'Checking SEO elements...', active: true },
+            { label: 'Evaluating performance', pending: true },
+            { label: 'Generating insights', pending: true },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-3">
+              {item.done && (
+                <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                  ✓
+                </div>
+              )}
+              {item.active && (
+                <div className="w-5 h-5 rounded-full bg-[#611722]/15 text-[#611722] flex items-center justify-center flex-shrink-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#611722] animate-pulse-dot" />
+                </div>
+              )}
+              {item.pending && (
+                <div className="w-5 h-5 rounded-full border-2 border-[#A3948C]/40 flex-shrink-0" />
+              )}
+              <span
+                className={`text-xs font-semibold ${
+                  item.active ? 'text-[#611722] font-bold' : item.done ? 'text-[#21130D]' : 'text-[#A3948C]'
+                }`}
+              >
+                {item.label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   if (!analysis) {
-    return <div className="panel p-6 text-sm text-[#737373]">Analysis not found.</div>;
+    return <div className="glass-panel p-6 text-sm text-[#796B64]">Analysis not found.</div>;
   }
-
-  const isRunning = analysis.status === 'running' || analysis.status === 'failed' || !analysis.completedAt;
 
   return (
     <div className="space-y-6">
-      <section className="panel p-5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="kicker">Website</div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[#171717]">{analysis.url}</h1>
-            <div className="mt-2 text-sm text-[#737373]">{formatDate(analysis.completedAt || analysis.createdAt)}</div>
-          </div>
+      <section className="glass-panel p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs uppercase tracking-wider font-bold text-[#796B64]">Website</span>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#21130D] truncate max-w-[260px]">{analysis.url}</h1>
+              <div className="mt-0.5 text-xs text-[#796B64] font-medium">{formatDate(analysis.completedAt || analysis.createdAt)}</div>
+            </div>
 
-          <div className="rounded-2xl border border-[#E7E5E4] bg-[#F9F9F8] p-4 text-right">
-            <div className="text-xs uppercase tracking-[0.12em] text-[#737373]">Overall score</div>
-            <div className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-[#5A0714]">{analysis.overallScore ?? 0}/100</div>
+            <div className="rounded-2xl border border-white/90 bg-white/70 p-3 text-center min-w-[90px] shadow-sm">
+              <div className="text-[10px] uppercase font-bold text-[#796B64]">Overall</div>
+              <div className="text-2xl font-extrabold text-[#611722]">{analysis.overallScore ?? 0}/100</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {isRunning ? (
-        <section className="panel p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="kicker">Audit in progress</div>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#171717]">Analyzing {analysis.url}</h2>
-            </div>
-            <div className="score-badge">{Math.min(100, Math.max(0, stageProgress.displayValue))}%</div>
-          </div>
-
-          <div className="mt-5">
-            <div className="flex items-center justify-between text-sm text-[#737373]">
-              <span>Overall progress</span>
-              <span>{Math.min(100, Math.max(0, stageProgress.displayValue))}%</span>
-            </div>
-            <div className="progress-track mt-3">
-              <div
-                className="h-full rounded-full bg-[#5A0714] transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(0, stageProgress.displayValue))}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-[#E7E5E4] bg-[#F9F9F8] p-4">
-            <div className="text-xs uppercase tracking-[0.12em] text-[#737373]">Current stage</div>
-            <div className="mt-2 text-lg font-semibold text-[#171717]">
-              {progress?.message || 'Validating URL'}
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {stageOrder.map((stage, index) => {
-              const isCurrent = stage.key === activeStage;
-              const isComplete = index < stageProgress.currentIndex || (analysis.status === 'completed' && index <= stageOrder.length - 1);
-
-              return (
-                <div
-                  key={stage.key}
-                  className={`rounded-2xl border p-3 ${
-                    isCurrent
-                      ? 'border-[#5A0714] bg-[#F8E9EC]'
-                      : isComplete
-                        ? 'border-[#DCFCE7] bg-[#F0FDF4]'
-                        : 'border-[#E7E5E4] bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-[#171717]">{stage.label}</span>
-                    <span className="text-base">{isComplete ? '✓' : isCurrent ? '•' : '○'}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section className="grid grid-cols-2 gap-3">
         {categories.map((category) => (
           <Link
             key={category.key}
             to={`/analysis/${id}/${category.path}`}
-            className="panel block p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(23,23,23,0.07)]"
+            className="glass-panel p-4 block transition hover:bg-white/90 cursor-pointer"
           >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm text-[#737373]">{category.icon} {category.label}</div>
-                <div className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-[#171717]">
-                  {analysis[category.key]?.score ?? 0}
-                </div>
-              </div>
-              <span className="text-xl">→</span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#796B64] font-semibold">{category.icon} {category.label}</span>
+              <span className="text-sm font-bold text-[#21130D]">→</span>
             </div>
-            <div className="mt-3 text-sm text-[#737373]">Open detailed audit</div>
+            <div className="mt-3 text-2xl font-extrabold text-[#21130D]">
+              {analysis[category.key]?.score ?? 0}
+            </div>
+            <div className="mt-1 text-[11px] font-medium text-[#796B64]">Open audit</div>
           </Link>
         ))}
       </section>

@@ -6,12 +6,12 @@ const filterOptions = ['All', 'Healthy', 'Needs Attention', 'Never Analyzed'];
 
 function getStatusMeta(score: number, lastAnalyzedAt?: string, status?: string) {
   if (!lastAnalyzedAt || status === 'never_analyzed') {
-    return { label: 'Never analyzed', tone: 'bg-[#F3F2EF] text-[#737373]', score: 'N/A' };
+    return { label: 'Never analyzed', tone: 'bg-white/60 text-[#796B64]', score: 'N/A' };
   }
   if (score >= 80) {
-    return { label: 'Healthy', tone: 'bg-[#F0FDF4] text-[#166534]', score: `${score}/100` };
+    return { label: 'Healthy', tone: 'bg-emerald-50 text-emerald-700', score: `${score}/100` };
   }
-  return { label: 'Needs Attention', tone: 'bg-[#FFFBEB] text-[#92400E]', score: `${score}/100` };
+  return { label: 'Needs Attention', tone: 'bg-amber-50 text-amber-700', score: `${score}/100` };
 }
 
 function formatWhen(value?: string) {
@@ -117,174 +117,152 @@ export default function WebsitesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="panel p-5 sm:p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="kicker">Workspace</div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[#171717]">CheckMySite</h1>
-            <p className="mt-2 text-sm text-[#737373]">Monitor, analyze and improve your websites.</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={openAddModal}
-            className="inline-flex items-center justify-center rounded-xl bg-[#5A0714] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#43050E]"
-          >
-            + Add Website
-          </button>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-[#21130D]">Monitored Sites</h1>
+          <p className="text-sm text-[#796B64] font-medium mt-0.5">Manage and track website scores</p>
         </div>
-      </section>
+        <button
+          type="button"
+          onClick={openAddModal}
+          className="btn-burgundy px-4 py-2 text-xs font-semibold"
+        >
+          + Add Site
+        </button>
+      </div>
 
-      <section className="panel p-4 sm:p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="w-full max-w-lg">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search websites..."
-              className="w-full rounded-xl border border-[#E7E5E4] bg-white px-3 py-2.5 text-sm text-[#171717] outline-none transition focus:border-[#5A0714] focus:ring-2 focus:ring-[#F8E9EC]"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {filterOptions.map((option) => (
-              <button
-                type="button"
-                key={option}
-                onClick={() => setFilter(option)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  filter === option ? 'bg-[#F8E9EC] text-[#5A0714]' : 'bg-[#F3F2EF] text-[#737373] hover:bg-[#E7E5E4]'
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+      <div className="space-y-3">
+        <div className="input-pill px-4 py-2.5 bg-white/80">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search websites..."
+            className="w-full bg-transparent text-sm font-medium text-[#21130D] placeholder-[#A3948C] outline-none"
+          />
         </div>
-      </section>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {filterOptions.map((option) => (
+            <button
+              type="button"
+              key={option}
+              onClick={() => setFilter(option)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition flex-shrink-0 ${
+                filter === option
+                  ? 'bg-[#611722] text-white'
+                  : 'bg-white/60 border border-white/80 text-[#796B64] hover:bg-white'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {filteredItems.length === 0 ? (
-        <div className="panel p-8 text-center">
-          <div className="text-2xl font-semibold text-[#171717]">No websites yet</div>
-          <p className="mt-2 text-sm text-[#737373]">Add your first website to start monitoring its health.</p>
+        <div className="glass-panel p-8 text-center space-y-3">
+          <div className="text-base font-bold text-[#21130D]">No websites found</div>
+          <p className="text-xs text-[#796B64]">Add a website to monitor its health metrics continuously.</p>
           <button
             type="button"
             onClick={openAddModal}
-            className="mt-5 inline-flex items-center justify-center rounded-xl bg-[#5A0714] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#43050E]"
+            className="btn-burgundy px-5 py-2.5 text-xs font-semibold inline-block"
           >
             + Add Website
           </button>
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="space-y-3">
           {filteredItems.map((item) => {
             const latestAnalysis = analyses.find((entry) => entry.url === item.url || entry.url === item.normalizedUrl || entry.websiteId === item._id);
             const overallScore = Number(latestAnalysis?.overallScore ?? item.latestScore ?? 0);
-            const performanceScore = Number(latestAnalysis?.performance?.score ?? 0);
-            const seoScore = Number(latestAnalysis?.seo?.score ?? 0);
-            const accessibilityScore = Number(latestAnalysis?.accessibility?.score ?? 0);
-            const securityScore = Number(latestAnalysis?.security?.score ?? 0);
-            const mobileScore = Number(latestAnalysis?.mobile?.score ?? 0);
-            const technicalScore = Number(latestAnalysis?.technical?.score ?? 0);
             const statusMeta = getStatusMeta(overallScore, item.lastAnalyzedAt || latestAnalysis?.completedAt, item.latestStatus);
+            const domainName = item.name || item.domain || 'Website';
 
             return (
-              <article key={item._id} className="panel overflow-hidden p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(23,23,23,0.07)]">
-                <div className="flex items-start justify-between gap-3">
+              <div key={item._id} className="glass-panel p-4 space-y-3">
+                <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#E7E5E4] bg-[#F9F9F8] text-lg font-semibold text-[#171717]">
-                      {item.name?.[0]?.toUpperCase() || item.domain?.[0]?.toUpperCase() || 'W'}
+                    <div className="w-10 h-10 rounded-2xl bg-[#FAF4EE] border border-[#EBE0D6] flex items-center justify-center font-bold text-xs text-[#611722] uppercase">
+                      {domainName.charAt(0)}
                     </div>
                     <div>
-                      <div className="text-lg font-semibold text-[#171717]">{item.name || item.domain}</div>
-                      <div className="mt-1 text-sm text-[#737373]">{item.url}</div>
+                      <h3 className="font-bold text-sm text-[#21130D]">{domainName}</h3>
+                      <p className="text-xs text-[#796B64] font-medium">{item.url}</p>
                     </div>
                   </div>
-
-                  <span className={`status-pill ${statusMeta.tone}`}>{statusMeta.label}</span>
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${statusMeta.tone}`}>
+                    {statusMeta.label}
+                  </span>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {[
-                    { label: 'Performance', value: performanceScore },
-                    { label: 'SEO', value: seoScore },
-                    { label: 'Accessibility', value: accessibilityScore },
-                    { label: 'Security', value: securityScore },
-                  ].map((metric) => (
-                    <div key={metric.label} className="soft-panel p-3">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-[#737373]">{metric.label}</div>
-                      <div className="mt-2 text-xl font-semibold text-[#171717]">{metric.value}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-5 flex items-center justify-between border-t border-[#E7E5E4] pt-4">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-[#737373]">Last analyzed</div>
-                    <div className="mt-1 text-sm text-[#171717]">{formatWhen(item.lastAnalyzedAt || latestAnalysis?.completedAt)}</div>
+                <div className="flex items-center justify-between border-t border-white/60 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => analyzeWebsite(item.url)}
+                    className="btn-burgundy px-3.5 py-1.5 text-xs font-semibold"
+                  >
+                    Analyze Now
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(item)}
+                      className="px-3 py-1.5 rounded-xl bg-white/70 border border-white/90 text-xs font-bold text-[#21130D] hover:bg-white"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteWebsite(item._id)}
+                      className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold hover:bg-rose-100"
+                    >
+                      Delete
+                    </button>
                   </div>
-
-                  <div className="score-badge">{statusMeta.score}</div>
                 </div>
-
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => analyzeWebsite(item.url)} className="rounded-lg bg-[#5A0714] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#43050E]">Analyze Again</button>
-                  {latestAnalysis ? (
-                    <button type="button" onClick={() => navigate(`/analysis/${latestAnalysis._id}`)} className="rounded-lg border border-[#E7E5E4] bg-white px-3 py-2 text-xs font-semibold text-[#171717] transition hover:border-[#D5D1CE]">View Website</button>
-                  ) : (
-                    <button type="button" className="rounded-lg border border-[#E7E5E4] bg-white px-3 py-2 text-xs font-semibold text-[#171717] transition hover:border-[#D5D1CE] opacity-60">View Website</button>
-                  )}
-                  <button type="button" onClick={() => openEditModal(item)} className="rounded-lg border border-[#E7E5E4] bg-white px-3 py-2 text-xs font-semibold text-[#171717] transition hover:border-[#D5D1CE]">Edit</button>
-                  <button type="button" onClick={() => deleteWebsite(item._id)} className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-xs font-semibold text-[#B91C1C] transition hover:border-[#FCA5A5]">Delete</button>
-                </div>
-              </article>
+              </div>
             );
           })}
         </div>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/40 p-4">
-          <div className="w-full max-w-lg rounded-[24px] border border-[#E7E5E4] bg-white p-5 shadow-[0_24px_80px_rgba(23,23,23,0.15)]">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="kicker">{editingWebsite ? 'Edit website' : 'Add website'}</div>
-                <h2 className="mt-2 text-2xl font-semibold text-[#171717]">{editingWebsite ? 'Update website' : 'New website'}</h2>
-              </div>
-              <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-[#E7E5E4] bg-white px-2 py-1 text-sm text-[#171717]">✕</button>
+        <div className="drawer-backdrop flex items-center justify-center p-4">
+          <div className="glass-panel p-6 w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base text-[#21130D]">
+                {editingWebsite ? 'Edit Website' : 'Add Website'}
+              </h2>
+              <button type="button" onClick={() => setShowModal(false)} className="text-sm font-bold text-[#796B64]">✕</button>
             </div>
 
-            <form onSubmit={submitWebsite} className="mt-5 space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-[#171717]">Website URL</label>
+            <form onSubmit={submitWebsite} className="space-y-3">
+              <div className="input-pill px-3 py-2.5 bg-white">
                 <input
                   value={form.url}
                   onChange={(e) => setForm((prev) => ({ ...prev, url: e.target.value }))}
                   placeholder="https://yourwebsite.com"
-                  className="w-full rounded-xl border border-[#E7E5E4] bg-white px-3 py-2.5 text-[#171717] outline-none transition focus:border-[#5A0714] focus:ring-2 focus:ring-[#F8E9EC]"
+                  className="w-full bg-transparent text-xs font-medium text-[#21130D] outline-none"
                   required
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-[#171717]">Website Name (optional)</label>
+              <div className="input-pill px-3 py-2.5 bg-white">
                 <input
                   value={form.name}
                   onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="Brand or company name"
-                  className="w-full rounded-xl border border-[#E7E5E4] bg-white px-3 py-2.5 text-[#171717] outline-none transition focus:border-[#5A0714] focus:ring-2 focus:ring-[#F8E9EC]"
+                  placeholder="Website name (optional)"
+                  className="w-full bg-transparent text-xs font-medium text-[#21130D] outline-none"
                 />
               </div>
 
-              {error && <div className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">{error}</div>}
+              {error && <div className="text-xs text-rose-600 font-medium">{error}</div>}
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="rounded-xl border border-[#E7E5E4] bg-white px-4 py-2.5 text-sm font-semibold text-[#171717]">Cancel</button>
-                <button type="submit" disabled={submitting} className="rounded-xl bg-[#5A0714] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#43050E] disabled:opacity-60">
-                  {submitting ? (editingWebsite ? 'Saving...' : 'Adding...') : editingWebsite ? 'Save Changes' : 'Add Website'}
-                </button>
-              </div>
+              <button type="submit" disabled={submitting} className="btn-burgundy w-full py-3 text-xs font-bold">
+                {submitting ? 'Saving...' : editingWebsite ? 'Save Changes' : 'Add Website'}
+              </button>
             </form>
           </div>
         </div>

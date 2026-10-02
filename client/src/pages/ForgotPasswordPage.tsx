@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { resetPassword } from '../firebase';
+import api from '../api';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -21,69 +21,87 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await resetPassword(email.trim());
+      await api.post('/auth/reset-password', { email: email.trim() });
       setSuccess('A password reset link has been sent to your email.');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to send reset email.';
-      if (message.includes('user-not-found')) {
-        setError('No account was found for that email address.');
-      } else if (message.includes('invalid-email')) {
-        setError('Please enter a valid email address.');
-      } else {
-        setError('We could not send a reset link. Please try again.');
-      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'We could not send a reset link. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] px-4 py-6 text-[#171717] sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-5xl items-center justify-center">
-        <div className="w-full max-w-lg rounded-[28px] border border-[#E7E5E4] bg-white p-6 shadow-[0_20px_60px_rgba(23,23,23,0.08)] sm:p-8">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#5A0714] text-lg font-semibold text-white">C</div>
-            <div className="text-xl font-semibold tracking-[-0.05em]">CheckMySite</div>
+    <div className="app-shell justify-center">
+      <div className="main-container flex flex-col justify-end min-h-screen pb-6">
+        {/* Top Status Bar */}
+        <div className="absolute top-3 inset-x-6 flex items-center justify-between text-xs font-semibold text-[#21130D]">
+          <span>9:41</span>
+          <div className="flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.8A1 1 0 005.76 21.2l2.19-.62A8.93 8.93 0 0012 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4a8 8 0 00-8 8c0 1.9.66 3.65 1.77 5.03l-1.4 1.4a1 1 0 001.42 1.42l1.4-1.4A7.95 7.95 0 0012 20a8 8 0 008-8 8 8 0 00-8-8z"/></svg>
+            <div className="w-5 h-2.5 rounded-sm border border-[#21130D] p-0.5 flex items-center"><div className="w-full h-full bg-[#21130D] rounded-xs"/></div>
           </div>
+        </div>
 
-          <div className="mb-6">
-            <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#777777]">Account recovery</div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.06em] text-[#171717]">Reset your password</h1>
-            <p className="mt-2 text-sm leading-6 text-[#777777]">Enter the email address linked to your workspace and we’ll send a reset link.</p>
-          </div>
+        {/* Floating Glass Card */}
+        <div className="glass-panel p-6 sm:p-8 rounded-[36px] shadow-[0_24px_60px_rgba(90,55,40,0.12)]">
+          <Link
+            to="/login"
+            className="w-10 h-10 rounded-2xl bg-white/60 border border-white/80 shadow-sm flex items-center justify-center text-[#21130D] mb-4 hover:bg-white transition"
+            aria-label="Back to login"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+          </Link>
 
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-[#171717]">Email</label>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#21130D]">
+            Reset Password
+          </h1>
+          <p className="mt-1 text-sm text-[#796B64] font-medium">
+            Enter your email to receive a password reset link
+          </p>
+
+          <form onSubmit={onSubmit} className="mt-6 space-y-4">
+            <div className="input-pill flex items-center px-4 py-3.5 gap-3">
+              <svg className="w-5 h-5 text-[#9C8B82]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Z" /><path d="m5 7 7 5 7-5" /></svg>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 type="email"
                 autoComplete="email"
-                placeholder="Enter your email"
-                className="w-full rounded-xl border border-[#E7E5E4] bg-white px-3 py-2.75 text-sm text-[#171717] placeholder:text-[#B3B0AD] outline-none transition duration-200 focus:border-[#5A0714] focus:ring-2 focus:ring-[#F8E9EC]"
+                placeholder="Email address"
+                className="w-full bg-transparent text-[#21130D] placeholder-[#A3948C] outline-none text-base font-medium"
               />
             </div>
 
-            {error && <div className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2.5 text-sm text-[#B91C1C]">{error}</div>}
-            {success && <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-2.5 text-sm text-[#166534]">{success}</div>}
+            {error && (
+              <div className="p-3.5 rounded-2xl bg-[#611722]/10 border border-[#611722]/20 text-[#611722] text-xs font-medium">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
+                {success}
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center rounded-xl bg-[#5A0714] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(90,7,20,0.18)] transition duration-200 hover:bg-[#43050E] hover:shadow-[0_12px_24px_rgba(90,7,20,0.22)] disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-burgundy w-full py-4 text-base tracking-wide"
             >
-              {loading ? 'Sending...' : 'Send reset link'}
+              {loading ? 'Sending...' : 'Send Reset Link →'}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-[#777777]">
+          <p className="text-center text-xs text-[#796B64] pt-4">
             Back to{' '}
-            <Link to="/login" className="font-semibold text-[#5A0714] transition hover:text-[#43050E]">
-              Login
+            <Link to="/login" className="text-[#611722] font-semibold hover:underline">
+              Sign in
             </Link>
-          </div>
+          </p>
         </div>
+
+        <div className="w-32 h-1 bg-[#21130D]/25 rounded-full mx-auto mt-6" />
       </div>
     </div>
   );
